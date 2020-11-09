@@ -1,0 +1,6 @@
+root=true
+
+[*]
+indent_style = tab
+
+dotnet_diagnostic.IDE0055.severity = none
