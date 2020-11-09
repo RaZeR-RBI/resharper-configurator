@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -12,28 +13,65 @@ namespace Extractor
 {
 	class Program
 	{
+		static IReadOnlyList<string> s_dependencies = new List<string>() {
+			"JetBrains.Annotations.dll",
+			"JetBrains.Lifetimes.dll",
+			"JetBrains.Platform.Core.dll",
+			"JetBrains.Platform.ComponentModel.dll",
+			"JetBrains.Platform.DocumentModel.dll",
+			"JetBrains.Platform.Metadata.dll",
+			"JetBrains.Platform.ProjectModel.dll",
+			"JetBrains.Platform.TextControl.dll",
+			"JetBrains.Platform.Util.dll",
+			"JetBrains.ReSharper.Psi.dll",
+			"JetBrains.ReSharper.Psi.Xml.dll",
+			"JetBrains.ReSharper.Resources.dll",
+		};
 		static void Main(string[] args)
 		{
 			if (args.Length < 1) PrintUsage();
 
 			var dir = string.Join(' ', args);
-			LoadAssembly(Path.Join(dir, "JetBrains.Platform.Core.dll"));
-			LoadAssembly(Path.Join(dir, "JetBrains.Platform.ComponentModel.dll"));
+			foreach (var dependency in s_dependencies)
+				LoadAssembly(Path.Join(dir, dependency));
+
 			var shell = LoadAssembly(Path.Join(dir, "JetBrains.Platform.Shell.dll"));
-			LoadAssembly(Path.Join(dir, "JetBrains.ReSharper.Psi.dll"));
 			var csharp = LoadAssembly(Path.Join(dir, "JetBrains.ReSharper.Psi.CSharp.dll"));
 
-			var settingsTypeName = "JetBrains.ReSharper.Psi.CSharp.CodeStyle.FormatSettings.CSharpFormatSettingsKey";
-			var settingsType = csharp.GetType(settingsTypeName);
-			var settingAttributeType = shell.GetType("JetBrains.Application.Settings.SettingsEntryAttribute");
-			if (settingsType == null || settingAttributeType == null)
+			var keyType = shell.GetType("JetBrains.Application.Settings.SettingsKeyAttribute");
+			var entryType = shell.GetType("JetBrains.Application.Settings.SettingsEntryAttribute");
+			if (keyType == null || entryType == null)
 			{
-				Console.WriteLine("Unable to locate setting types in loaded assemblies");
+				Console.Error.WriteLine("Unable to locate setting types in loaded assemblies");
 				Environment.Exit(2);
 			}
-			var settingsData = new SettingsData(settingsType, settingAttributeType);
-			var json = AsJson(settingsData);
+			var types = GetTypesWithAttribute(csharp, keyType);
+			var sections = types.Select(t => new SettingsSection(t, keyType, entryType)).ToList();
+			var sectionsByCategory = sections.GroupBy(s => s.Category).ToDictionary(g => g.Key, g => g);
+			var json = AsJson(sectionsByCategory);
 			Console.WriteLine(json);
+		}
+
+		static IEnumerable<Type> GetTypesWithAttribute(Assembly assembly, Type attribute)
+		{
+			var result = new List<Type>();
+			foreach (var type in assembly.GetTypes())
+				try
+				{
+					if (type.IsDefined(attribute, true))
+						result.Add(type);
+				}
+				catch (FileNotFoundException ex)
+				{
+					// skip WPF stuff
+					if (!ex.Message.Contains("System.Xaml"))
+						throw;
+				}
+				catch (Exception ex)
+				{
+					Console.Error.WriteLine($"Skipping {type.FullName}, reason: {ex}");
+				}
+			return result;
 		}
 
 		static string AsJson(object? data) =>
@@ -88,7 +126,40 @@ namespace Extractor
 			IsObsolete = isObsolete;
 			DefaultValue = defaultValue;
 		}
+
+		public override string ToString() =>
+			string.Format("[{0}] {1} - {2} = {3}{4}",
+				Type,
+				Name,
+				Description,
+				DefaultValue,
+				IsObsolete ? " (obsolete)" : "");
 	}
+
+	public class SettingsSection
+	{
+		public string Description { get; private set; }
+		public string Category { get; private set; }
+		public SettingsData Settings { get; private set; }
+
+		public SettingsSection(Type type, Type keyType, Type entryType)
+		{
+			var attr = type.GetCustomAttribute(keyType, true);
+			Debug.Assert(attr != null);
+			Description = keyType.GetProperty("Description")?.GetValue(attr) as string ?? type.Name;
+			var parent = keyType.GetProperty("Parent")?.GetValue(attr) as Type;
+			Category = MakeSentence(parent?.Name ?? "Uncategorized");
+			Settings = new SettingsData(type, entryType);
+		}
+
+		public override string ToString() =>
+			$"[{Category}] {Description} - {Settings.Items.Count} items";
+
+		private string MakeSentence(string slug) => string.Concat(slug
+			.Select(c => char.IsUpper(c) ? $" {c}" : $"{c}")).Trim();
+
+	}
+
 
 	public class SettingsData
 	{
@@ -98,7 +169,7 @@ namespace Extractor
 		private readonly List<SettingItem> _items = new List<SettingItem>();
 
 		public IReadOnlyDictionary<string, List<SettingValue>> Enumerations => _enums;
-		public IEnumerable<SettingItem> Items => _items;
+		public IReadOnlyList<SettingItem> Items => _items;
 
 		public SettingsData(Type type, Type settingAttributeType)
 		{
@@ -143,18 +214,19 @@ namespace Extractor
 		private SettingItem? LoadSettingItem(FieldInfo field, Type settingsAttributeType)
 		{
 			var name = field.Name;
-			var typeName = field.FieldType.Name;
-			if (!field.FieldType.IsPrimitive && !field.FieldType.IsEnum)
+			var type = field.FieldType;
+			var typeName = type.Name.Split('.').Last();
+			if (!type.IsPrimitive && !type.IsEnum && type != typeof(string))
 			{
-				Console.Error.WriteLine("{name} - unsupported field type");
+				Console.Error.WriteLine($"{field.DeclaringType?.FullName}.{name} - unsupported field type {type}");
 				return null;
 			}
 			var attr = field.GetCustomAttribute(settingsAttributeType);
 			var isObsolete = field.IsDefined(typeof(ObsoleteAttribute), true);
 			var description = (settingsAttributeType.GetProperty("Description")?.GetValue(attr) as string) ?? name;
 			var defaultValue = settingsAttributeType.GetProperty("DefaultValue")?.GetValue(attr) ?? new object();
-			if (field.FieldType.IsEnum && defaultValue != null)
-				defaultValue = Enum.GetName(field.FieldType, defaultValue);
+			if (type.IsEnum && defaultValue != null)
+				defaultValue = Enum.GetName(type, defaultValue);
 			return new SettingItem(name, description, typeName, isObsolete, defaultValue);
 		}
 	}
