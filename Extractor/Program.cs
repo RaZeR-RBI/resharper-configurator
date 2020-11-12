@@ -47,8 +47,7 @@ namespace Extractor
 			}
 			var types = GetTypesWithAttribute(csharp, keyType);
 			var sections = types.Select(t => new SettingsSection(t, keyType, entryType)).ToList();
-			var sectionsByCategory = sections.GroupBy(s => s.Category).ToDictionary(g => g.Key, g => g);
-			var json = AsJson(sectionsByCategory);
+			var json = AsJson(sections);
 			Console.WriteLine(json);
 		}
 
@@ -139,7 +138,7 @@ namespace Extractor
 	public class SettingsSection
 	{
 		public string Description { get; private set; }
-		public string Category { get; private set; }
+		public IReadOnlyList<string> Subtree { get; private set; }
 		public SettingsData Settings { get; private set; }
 
 		public SettingsSection(Type type, Type keyType, Type entryType)
@@ -147,17 +146,33 @@ namespace Extractor
 			var attr = type.GetCustomAttribute(keyType, true);
 			Debug.Assert(attr != null);
 			Description = keyType.GetProperty("Description")?.GetValue(attr) as string ?? type.Name;
-			var parent = keyType.GetProperty("Parent")?.GetValue(attr) as Type;
-			Category = MakeSentence(parent?.Name ?? "Uncategorized");
 			Settings = new SettingsData(type, entryType);
+			var subtreeTypes = ResolveSettingsSubtree(type, keyType);
+			Subtree = subtreeTypes.Reverse().Select(GetSettingsKeyName).ToList();
+		}
+
+		private string GetSettingsKeyName(Type type) =>
+			type.Name.Replace("Settings", "").Replace("Key", "");
+
+		private IReadOnlyList<Type> ResolveSettingsSubtree(Type item, Type keyType)
+		{
+			var result = new List<Type>() { item };
+			do
+			{
+				var current = result.Last();
+				if (!current.IsDefined(keyType, inherit: false))
+					break;
+				var attr = current.GetCustomAttribute(keyType, inherit: false);
+				var parentType = keyType.GetProperty("Parent")?.GetValue(attr) as Type;
+				if (parentType == null || parentType.Name.Contains("Missing"))
+					break;
+				result.Add(parentType);
+			} while (true);
+			return result;
 		}
 
 		public override string ToString() =>
-			$"[{Category}] {Description} - {Settings.Items.Count} items";
-
-		private string MakeSentence(string slug) => string.Concat(slug
-			.Select(c => char.IsUpper(c) ? $" {c}" : $"{c}")).Trim();
-
+			$"{Description} - {Settings.Items.Count} items ({string.Join('/', Subtree)})";
 	}
 
 
