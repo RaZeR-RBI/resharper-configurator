@@ -10,10 +10,15 @@
 		-->
 		<form class="pure-form">
 			<EditorOption
-				v-for="item in section.settings.items"
+				v-for="(item, index) in section.settings.items"
+				:currentOptions="currentOptions"
+				:sectionId="sectionId"
+				:optionId="index"
 				:key="item.name"
 				:item="item"
 				:enums="section.settings.enumerations"
+				@changed="onChanged"
+				@reset="onReset"
 			/>
 		</form>
 	</div>
@@ -23,15 +28,25 @@
 import { Component, Prop, Vue } from "vue-property-decorator";
 import EditorOption from "./EditorOption.vue";
 
-import { Section } from "../config-types";
+import { Section, ConfigValue, ChangeEvent } from "../config-types";
 
 @Component({
 	components: {
 		EditorOption
 	}
 })
-export default class SectionList extends Vue {
+export default class Editor extends Vue {
+	@Prop() private currentOptions!: Map<number, Map<number, ConfigValue>>;
+	@Prop() private sectionId!: number;
 	@Prop() private section!: Section;
+
+	onChanged(e: ChangeEvent) {
+		this.$emit("changed", e);
+	}
+
+	onReset(e: ChangeEvent) {
+		this.$emit("reset", e);
+	}
 }
 </script>
 

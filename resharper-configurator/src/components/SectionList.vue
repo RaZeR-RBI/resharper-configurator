@@ -6,9 +6,17 @@
 				class="pure-menu-item"
 				v-for="(section, index) in sections"
 				:key="section.description"
-				:class="{ 'pure-menu-selected': index == selectedSectionId}"
+				:class="{ 'pure-menu-selected pure-button-primary': index == selectedSectionId}"
 			>
-				<a href="#" class="pure-menu-link" @click="onClick(index)">{{ section.description }}</a>
+				<a
+					v-if="!hasChangedOptions(index)"
+					href="#"
+					class="pure-menu-link"
+					@click="onClick(index)"
+				>{{ section.description }}</a>
+				<a v-else href="#" class="pure-menu-link" @click="onClick(index)">
+					<i>{{ section.description }}*</i>
+				</a>
 			</li>
 		</ul>
 	</div>
@@ -17,15 +25,20 @@
 <script lang="ts">
 import { Component, Prop, Vue } from "vue-property-decorator";
 
-import { Section } from "../config-types";
+import { Section, ConfigValue } from "../config-types";
 
 @Component
 export default class SectionList extends Vue {
+	@Prop() private changes!: number[];
 	@Prop() private sections!: Section[];
 	@Prop() private selectedSectionId!: number;
 
 	onClick(id: number) {
 		this.$emit("change", id);
+	}
+
+	hasChangedOptions(sectionId: number) {
+		return this.changes.indexOf(sectionId) >= 0;
 	}
 }
 </script>

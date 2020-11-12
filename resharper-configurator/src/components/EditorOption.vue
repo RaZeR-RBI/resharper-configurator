@@ -1,12 +1,12 @@
 <template>
-	<fieldset v-if="!isBoolean">
+	<fieldset v-if="!isBoolean" :class="{'changed': isChanged}">
 		<legend>
 			<span>{{ description }}</span>
 			<span class="item-name">&nbsp;({{ item.name }})</span>
 		</legend>
-		<input type="text" v-if="isString" :value="value" />
-		<input type="number" v-else-if="isNumeric" :value="value" />
-		<select v-else>
+		<input type="text" v-if="isString" v-model="value" />
+		<input type="number" v-else-if="isNumeric" v-model="value" />
+		<select v-else v-model="value">
 			<option
 				v-for="e in enumValues"
 				:key="e.value"
@@ -15,9 +15,9 @@
 		</select>
 	</fieldset>
 
-	<fieldset v-else style="padding: 0">
+	<fieldset v-else style="padding: 0" :class="{'changed': isChanged}">
 		<label class="pure-checkbox pure-checkbox-slim">
-			<input type="checkbox" :checked="value" />
+			<input type="checkbox" v-model="value" />
 			<span class="item-desc">&nbsp;{{ description }}</span>
 			<span class="item-name">&nbsp;({{ item.name }})</span>
 		</label>
@@ -25,18 +25,56 @@
 </template>
 
 <script lang="ts">
-import { Component, Prop, Vue } from "vue-property-decorator";
+import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 
-import { Item, Enumeration } from "../config-types";
+import { Item, Enumeration, ConfigValue, ChangeEvent } from "../config-types";
 
 @Component
-export default class SectionList extends Vue {
+export default class EditorOption extends Vue {
+	@Prop() private currentOptions!: Map<number, Map<number, ConfigValue>>;
+	@Prop() private sectionId!: number;
+	@Prop() private optionId!: number;
 	@Prop() private item!: Item;
 	@Prop() private enums!: { [key: string]: Enumeration[] };
-	value: boolean | number | string | null = null;
+	private value: ConfigValue = null;
 
 	mounted() {
+		if (
+			!this.currentOptions.has(this.sectionId) ||
+			(!this.currentOptions.get(this.sectionId)?.has(this.optionId) ?? true)
+		) {
+			this.reset();
+			return;
+		}
+		this.value =
+			this.currentOptions.get(this.sectionId)?.get(this.optionId) ??
+			this.item.defaultValue;
+	}
+
+	@Watch("value")
+	onValueChanged(val: ConfigValue) {
+		if (this.isString && val == "" && this.item.defaultValue == null) {
+			this.value = null;
+			return;
+		}
+		const result: ChangeEvent = {
+			sectionId: this.sectionId,
+			optionId: this.optionId,
+			value: val
+		};
+		if (this.value == this.item.defaultValue) {
+			this.$emit("reset", result);
+			return;
+		}
+		this.$emit("changed", result);
+	}
+
+	reset() {
 		this.value = this.item.defaultValue;
+	}
+
+	get isChanged() {
+		return this.value != this.item.defaultValue;
 	}
 
 	get isNumeric() {
@@ -52,7 +90,6 @@ export default class SectionList extends Vue {
 	}
 
 	get enumValues(): Enumeration[] {
-		// if (this.item.type! in this.enums) return [];
 		return this.enums[this.item.type];
 	}
 
@@ -125,5 +162,10 @@ export default class SectionList extends Vue {
 
 .pure-checkbox {
 	margin: 0.25em 0;
+}
+
+fieldset.changed,
+fieldset.changed legend {
+	background-color: #ffffbb;
 }
 </style>

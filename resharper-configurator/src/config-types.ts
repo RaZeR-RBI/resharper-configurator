@@ -19,5 +19,13 @@ export interface Item {
 	description: string;
 	type: string;
 	isObsolete: boolean;
-	defaultValue: boolean | number | null | string;
+	defaultValue: ConfigValue
+}
+
+export type ConfigValue = boolean | number | string | null;
+
+export interface ChangeEvent {
+	sectionId: number,
+	optionId: number,
+	value: ConfigValue
 }
