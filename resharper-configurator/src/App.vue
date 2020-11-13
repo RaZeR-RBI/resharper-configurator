@@ -9,6 +9,7 @@
 					v-on:change="onSectionChanged"
 				/>
 				<hr />
+				<a href="#" @click="importXml()" class="pure-button">Import</a>
 				<a href="#" @click="exportXml()" class="pure-button pure-button-primary">Export</a>
 				<hr />
 				<div style="text-align: center">
@@ -48,25 +49,28 @@
 				@changed="onOptionChanged"
 				@reset="onOptionReset"
 			/>
+			<ImportView v-else-if="showImport" v-on:import="onDoImport" />
 			<ExportView v-else-if="showExport" :contents="exportedData" />
 		</div>
 	</div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Watch } from "vue-property-decorator";
 import SectionList from "./components/SectionList.vue";
 import Editor from "./components/Editor.vue";
 import ExportView from "./components/ExportView.vue";
+import ImportView from "./components/ImportView.vue";
 import * as config from "./config.json";
 import { Section, ConfigValue, ChangeEvent } from "./config-types";
-import { toXml } from "./xml";
+import { toXml, fromXml } from "./xml";
 
 @Component({
 	components: {
 		SectionList,
 		Editor,
-		ExportView
+		ExportView,
+		ImportView
 	}
 })
 export default class App extends Vue {
@@ -75,10 +79,14 @@ export default class App extends Vue {
 	changedItems: Map<number, Map<number, ConfigValue>> = new Map();
 	changedSections: number[] = [];
 	exportedData: string | null = null;
+	showImport = false;
 
 	mounted() {
-		// this.onSectionChanged(this.sections.length - 1);
-		this.onSectionChanged(0);
+		this.goToEditor();
+	}
+
+	goToEditor() {
+		this.onSectionChanged(this.sections.length - 1);
 	}
 
 	get sections(): Section[] {
@@ -103,6 +111,7 @@ export default class App extends Vue {
 		this.selectedSectionId = id;
 		this.section = this.sections[id];
 		this.exportedData = null;
+		this.showImport = false;
 	}
 
 	onOptionChanged(e: ChangeEvent) {
@@ -130,14 +139,27 @@ export default class App extends Vue {
 	exportXml() {
 		this.exportedData = toXml(this.sections, this.changedItems);
 		this.section = null;
+		this.showImport = false;
+	}
+
+	importXml() {
+		this.section = null;
+		this.exportedData = null;
+		this.showImport = true;
 	}
 
 	showEditor() {
-		return this.exportedData == null && this.section != null;
+		return !this.showImport && !this.showExport && this.section != null;
 	}
 
 	showExport() {
 		return this.exportedData != null;
+	}
+
+	onDoImport(contents: string) {
+		this.changedItems = fromXml(this.sections, contents);
+		this.updateChangedSections();
+		this.goToEditor();
 	}
 }
 </script>

@@ -45,10 +45,12 @@ export default class ExportView extends Vue {
 
 	get formattedContents() {
 		const s = this.formatXml(this.contents);
-		console.dir(s);
 		const refs = this.$refs;
 		this.$nextTick(function() {
 			const el = refs.box as HTMLTextAreaElement;
+			if (!el) {
+				return;
+			}
 			el.style.height = "5px";
 			el.style.height = el.scrollHeight + "px";
 		});

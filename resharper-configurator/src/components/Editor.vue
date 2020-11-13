@@ -6,7 +6,7 @@
 			<li class="breadcrumb">Default</li>
 			<li class="breadcrumb" v-for="item in section.subtree" :key="item">{{ item }}</li>
 		</ul>
-		<form class="pure-form pure-form-aligned">
+		<form class="pure-form">
 			<fieldset>
 				<div class="pure-control-group">
 					<input type="text" placeholder="Search" v-model="search" />
@@ -53,6 +53,7 @@ export default class Editor extends Vue {
 	@Prop() private sectionId!: number;
 	@Prop() private section!: Section;
 	search: string | null = null;
+	showOnlyEdited = false;
 
 	onChanged(e: ChangeEvent) {
 		this.$emit("changed", e);
