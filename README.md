@@ -1,6 +1,6 @@
 [![Creative Commons License](https://i.creativecommons.org/l/by/4.0/80x15.png)](http://creativecommons.org/licenses/by/4.0/)
 
-This project is freely available under the CC-BY-4.0 license.
+This work is licensed under a Creative Commons Attribution 4.0 International License.
 
 ---
 
@@ -16,6 +16,16 @@ This project is an attempt to make an external GUI that can be used to configure
 Exported settings should work in [ReSharper](https://www.jetbrains.com/resharper/)-enabled tools (VS extension, [free cross-platform CLI tools](https://www.jetbrains.com/rider/) and Rider).
 
 Currently only C#-related formatting and naming settings are supported.
+
+# Running locally
+Clone the repository, make sure you have installed Node and do the usual install:
+```
+npm install
+```
+Then launch the development server with:
+```
+npm run serve
+```
 
 # Legal notes
 This tool's sole purpose is to aid in configuring ReSharper and ReSharper CLI. The options list was created by using the ReSharper SDK.
