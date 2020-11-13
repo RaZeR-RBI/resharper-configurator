@@ -34,7 +34,7 @@
 							href="https://www.jetbrains.com/help/resharper/ReSharper_Command_Line_Tools.html"
 							target="_blank"
 						>ReSharper CLI</a>.
-						The options list was created using the ReSharper SDK.
+						The options list was created by using the ReSharper SDK.
 					</p>
 					<p>ReSharper is a registered trademark of JetBrains s.r.o.</p>
 				</div>
