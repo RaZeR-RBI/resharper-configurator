@@ -1,20 +1,53 @@
 <template>
 	<div id="app">
-		<SectionList
-			:sections="sections"
-			:selectedSectionId="selectedSectionId"
-			:changes="changedSections"
-			v-on:change="onSectionChanged"
-		/>
-		<hr />
-		<Editor
-			v-if="section"
-			:section="section"
-			:sectionId="selectedSectionId"
-			:currentOptions="currentOptions"
-			@changed="onOptionChanged"
-			@reset="onOptionReset"
-		/>
+		<div class="content-sidebar">
+			<div>
+				<SectionList
+					:sections="sections"
+					:selectedSectionId="selectedSectionId"
+					:changes="changedSections"
+					v-on:change="onSectionChanged"
+				/>
+				<hr />
+				<div style="text-align: center">
+					<a href="https://github.com/razer-rbi/resharper-configurator" target="_blank">Fork me on GitHub</a>
+				</div>
+				<hr />
+				<div class="disclaimer">
+					<p>
+						Made by
+						<a href="https://github.com/razer-rbi/" target="_blank">Adel Vilkov</a>
+					</p>
+					<p>
+						<mark>This is not an official tool.</mark>
+					</p>
+					<p>
+						This tool's sole purpose is to aid in configuring
+						<a
+							href="https://www.jetbrains.com/resharper/"
+							target="_blank"
+						>ReSharper</a> and
+						<a
+							href="https://www.jetbrains.com/help/resharper/ReSharper_Command_Line_Tools.html"
+							target="_blank"
+						>ReSharper CLI</a>.
+						The options list was created using the ReSharper SDK.
+					</p>
+					<p>ReSharper is a registered trademark of JetBrains s.r.o.</p>
+					<p>All product names, logos, and brands are property of their respective owners.</p>
+				</div>
+			</div>
+		</div>
+		<div class="content-main">
+			<Editor
+				v-if="section"
+				:section="section"
+				:sectionId="selectedSectionId"
+				:currentOptions="currentOptions"
+				@changed="onOptionChanged"
+				@reset="onOptionReset"
+			/>
+		</div>
 	</div>
 </template>
 
@@ -90,9 +123,65 @@ export default class App extends Vue {
 </script>
 
 <style>
+html,
+body {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	background: rgb(197, 71, 139);
+	background: linear-gradient(
+		135deg,
+		rgba(197, 71, 139, 1) 0%,
+		rgba(243, 122, 62, 1) 30%,
+		rgba(252, 237, 57, 1) 100%
+	);
+	background-repeat: no-repeat;
+	background-attachment: fixed;
+}
+
 #app {
+	background-color: white;
 	font-family: Avenir, Helvetica, Arial, sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	display: flex;
+	max-width: 1024px;
+	margin: 0 auto;
+}
+
+#app > .content-sidebar {
+	flex: 0 0 250px;
+	background: white;
+	min-height: 100vh;
+}
+
+#app > .content-sidebar > div {
+	position: fixed;
+	top: 0;
+	width: 250px;
+}
+
+#app > .content-main {
+	padding: 0.5em;
+	background: white;
+	width: 100%;
+}
+
+.content-sidebar .disclaimer {
+	text-align: center;
+	padding: 0.5em;
+	font-size: 0.75rem;
+	color: #999;
+}
+
+.disclaimer mark {
+	background-color: transparent;
+	border-bottom: 1px solid red;
+}
+
+hr {
+	border-color: #fefefe;
 }
 </style>

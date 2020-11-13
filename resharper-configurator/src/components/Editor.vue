@@ -1,16 +1,23 @@
 
 <template>
 	<div class="editor">
-		<!--
 		<ul class="breadcrumbs">
-			<li class="breadcrumb">&nbsp;</li>
+			<li class="breadcrumb">Section:&nbsp;</li>
 			<li class="breadcrumb">Default</li>
 			<li class="breadcrumb" v-for="item in section.subtree" :key="item">{{ item }}</li>
 		</ul>
-		-->
+		<form class="pure-form pure-form-aligned">
+			<fieldset>
+				<div class="pure-control-group">
+					<input type="text" placeholder="Search" v-model="search" />
+				</div>
+			</fieldset>
+		</form>
+		<hr />
 		<form class="pure-form">
 			<EditorOption
 				v-for="(item, index) in section.settings.items"
+				:class="{'hidden': !isVisible(item)}"
 				:currentOptions="currentOptions"
 				:sectionId="sectionId"
 				:optionId="index"
@@ -28,7 +35,13 @@
 import { Component, Prop, Vue } from "vue-property-decorator";
 import EditorOption from "./EditorOption.vue";
 
-import { Section, ConfigValue, ChangeEvent } from "../config-types";
+import {
+	Section,
+	ConfigValue,
+	ChangeEvent,
+	Item,
+	formatOption
+} from "../config-types";
 
 @Component({
 	components: {
@@ -39,6 +52,7 @@ export default class Editor extends Vue {
 	@Prop() private currentOptions!: Map<number, Map<number, ConfigValue>>;
 	@Prop() private sectionId!: number;
 	@Prop() private section!: Section;
+	search: string | null = null;
 
 	onChanged(e: ChangeEvent) {
 		this.$emit("changed", e);
@@ -46,6 +60,23 @@ export default class Editor extends Vue {
 
 	onReset(e: ChangeEvent) {
 		this.$emit("reset", e);
+	}
+
+	get hasSearchTerm() {
+		return !(this.search == null || this.search.length == 0);
+	}
+
+	isVisible(item: Item): boolean {
+		if (!this.hasSearchTerm) {
+			return true;
+		}
+		const search = this.search.toLowerCase();
+		return (
+			item.name.toLowerCase().indexOf(search) >= 0 ||
+			formatOption(item)
+				.toLowerCase()
+				.indexOf(search) >= 0
+		);
 	}
 }
 </script>

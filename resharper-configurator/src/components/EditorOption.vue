@@ -2,7 +2,10 @@
 	<fieldset v-if="!isBoolean" :class="{'changed': isChanged}">
 		<legend>
 			<span>{{ description }}</span>
-			<span class="item-name">&nbsp;({{ item.name }})</span>
+			<span class="item-name">&nbsp;({{ item.name }})&nbsp;</span>
+			<a href="#" v-if="isChanged" @click="reset()">
+				<small>Reset</small>
+			</a>
 		</legend>
 		<input type="text" v-if="isString" v-model="value" />
 		<input type="number" v-else-if="isNumeric" v-model="value" />
@@ -27,7 +30,13 @@
 <script lang="ts">
 import { Component, Prop, Vue, Watch } from "vue-property-decorator";
 
-import { Item, Enumeration, ConfigValue, ChangeEvent } from "../config-types";
+import {
+	Item,
+	Enumeration,
+	ConfigValue,
+	ChangeEvent,
+	formatOption
+} from "../config-types";
 
 @Component
 export default class EditorOption extends Vue {
@@ -93,50 +102,8 @@ export default class EditorOption extends Vue {
 		return this.enums[this.item.type];
 	}
 
-	get prefixes(): string[] {
-		return ["in", "for"];
-	}
-
 	get description(): string {
-		const wordsInternal = this.item.name.toLowerCase().split("_");
-		const wordsVisible = this.item.description.toLowerCase().split(" ");
-		let index = wordsInternal.indexOf(wordsVisible[0]);
-		const hasPrefix = this.prefixes.indexOf(wordsVisible[0]) >= 0;
-		if (hasPrefix) {
-			for (const prefix of this.prefixes) {
-				const prefixIndex = wordsInternal.indexOf(prefix);
-				if (prefixIndex >= 0) {
-					index = prefixIndex;
-					break;
-				}
-			}
-		}
-		if (index > 0) {
-			const prefix = this.capitalize(
-				wordsInternal.slice(0, index).join(" ") + " "
-			);
-			const tail = this.item.description;
-			return prefix + this.uncapitalize(tail);
-		} else if (index < 0 && wordsInternal.length > 1) {
-			return this.capitalize(
-				this.item.name
-					.split("_")
-					.join(" ")
-					.toLowerCase()
-			);
-		}
-		return this.item.description;
-	}
-
-	capitalize(input: string): string {
-		return input.charAt(0).toUpperCase() + input.slice(1);
-	}
-
-	uncapitalize(input: string): string {
-		if (input.length > 1 && input.charAt(1) == input.charAt(1).toUpperCase()) {
-			return input;
-		}
-		return input.charAt(0).toLowerCase() + input.slice(1);
+		return formatOption(this.item);
 	}
 }
 </script>
@@ -144,10 +111,12 @@ export default class EditorOption extends Vue {
 <style>
 .item-name {
 	color: #bbb;
-	font-size: 0.75rem;
+	font-size: 0.7rem;
 }
 
-.pure-form input[type="text"] {
+.pure-form input[type="text"],
+.pure-form input[type="number"],
+.pure-form select {
 	width: 100%;
 }
 

@@ -1,5 +1,5 @@
 <template>
-	<div class="pure-menu pure-menu-horizontal">
+	<div class="sections pure-menu">
 		<span class="menu-brand">R# Configurator</span>
 		<ul class="pure-menu-list">
 			<li
@@ -13,9 +13,9 @@
 					href="#"
 					class="pure-menu-link"
 					@click="onClick(index)"
-				>{{ section.description }}</a>
+				>{{ formatDescription(section.description) }}</a>
 				<a v-else href="#" class="pure-menu-link" @click="onClick(index)">
-					<i>{{ section.description }}*</i>
+					<i>{{ formatDescription(section.description) }}*</i>
 				</a>
 			</li>
 		</ul>
@@ -40,6 +40,15 @@ export default class SectionList extends Vue {
 	hasChangedOptions(sectionId: number) {
 		return this.changes.indexOf(sectionId) >= 0;
 	}
+
+	formatDescription(input: string): string {
+		return input
+			.split("CSharp")
+			.join("C#")
+			.split("settings")
+			.join(" ")
+			.trim();
+	}
 }
 </script>
 
@@ -50,6 +59,11 @@ export default class SectionList extends Vue {
 	background-color: #ffc723;
 	font-weight: bold;
 }
+
+.sections.pure-menu .pure-menu-item {
+	font-size: 0.9rem;
+}
+
 .pure-menu.pure-menu-horizontal {
 	white-space: unset;
 }
