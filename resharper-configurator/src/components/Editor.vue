@@ -70,7 +70,7 @@ export default class Editor extends Vue {
 		if (!this.hasSearchTerm) {
 			return true;
 		}
-		const search = this.search.toLowerCase();
+		const search = (this.search ?? "").toLowerCase();
 		return (
 			item.name.toLowerCase().indexOf(search) >= 0 ||
 			formatOption(item)

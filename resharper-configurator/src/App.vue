@@ -9,6 +9,8 @@
 					v-on:change="onSectionChanged"
 				/>
 				<hr />
+				<a href="#" @click="exportXml()" class="pure-button pure-button-primary">Export</a>
+				<hr />
 				<div style="text-align: center">
 					<a href="https://github.com/razer-rbi/resharper-configurator" target="_blank">Fork me on GitHub</a>
 				</div>
@@ -34,19 +36,19 @@
 						The options list was created using the ReSharper SDK.
 					</p>
 					<p>ReSharper is a registered trademark of JetBrains s.r.o.</p>
-					<p>All product names, logos, and brands are property of their respective owners.</p>
 				</div>
 			</div>
 		</div>
 		<div class="content-main">
 			<Editor
-				v-if="section"
+				v-if="section && showEditor"
 				:section="section"
 				:sectionId="selectedSectionId"
 				:currentOptions="currentOptions"
 				@changed="onOptionChanged"
 				@reset="onOptionReset"
 			/>
+			<ExportView v-else-if="showExport" :contents="exportedData" />
 		</div>
 	</div>
 </template>
@@ -55,13 +57,16 @@
 import { Component, Vue } from "vue-property-decorator";
 import SectionList from "./components/SectionList.vue";
 import Editor from "./components/Editor.vue";
+import ExportView from "./components/ExportView.vue";
 import * as config from "./config.json";
 import { Section, ConfigValue, ChangeEvent } from "./config-types";
+import { toXml } from "./xml";
 
 @Component({
 	components: {
 		SectionList,
-		Editor
+		Editor,
+		ExportView
 	}
 })
 export default class App extends Vue {
@@ -69,6 +74,7 @@ export default class App extends Vue {
 	section: Section | null = null;
 	changedItems: Map<number, Map<number, ConfigValue>> = new Map();
 	changedSections: number[] = [];
+	exportedData: string | null = null;
 
 	mounted() {
 		// this.onSectionChanged(this.sections.length - 1);
@@ -96,6 +102,7 @@ export default class App extends Vue {
 	onSectionChanged(id: number) {
 		this.selectedSectionId = id;
 		this.section = this.sections[id];
+		this.exportedData = null;
 	}
 
 	onOptionChanged(e: ChangeEvent) {
@@ -118,6 +125,19 @@ export default class App extends Vue {
 			items.delete(e.sectionId);
 		}
 		this.updateChangedSections();
+	}
+
+	exportXml() {
+		this.exportedData = toXml(this.sections, this.changedItems);
+		this.section = null;
+	}
+
+	showEditor() {
+		return this.exportedData == null && this.section != null;
+	}
+
+	showExport() {
+		return this.exportedData != null;
 	}
 }
 </script>
@@ -147,7 +167,7 @@ body {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	display: flex;
-	max-width: 1024px;
+	max-width: 1000px;
 	margin: 0 auto;
 }
 
@@ -167,6 +187,7 @@ body {
 	padding: 0.5em;
 	background: white;
 	width: 100%;
+	max-width: 750px;
 }
 
 .content-sidebar .disclaimer {
@@ -174,6 +195,10 @@ body {
 	padding: 0.5em;
 	font-size: 0.75rem;
 	color: #999;
+}
+
+.content-sidebar .pure-button {
+	display: block;
 }
 
 .disclaimer mark {

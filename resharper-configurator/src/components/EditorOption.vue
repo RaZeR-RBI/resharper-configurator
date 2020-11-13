@@ -35,7 +35,10 @@ import {
 	Enumeration,
 	ConfigValue,
 	ChangeEvent,
-	formatOption
+	formatOption,
+	isNumeric,
+	isString,
+	isBoolean
 } from "../config-types";
 
 @Component
@@ -87,15 +90,15 @@ export default class EditorOption extends Vue {
 	}
 
 	get isNumeric() {
-		return this.item.type.indexOf("Int") == 0;
+		return isNumeric(this.item);
 	}
 
 	get isString() {
-		return this.item.type == "String";
+		return isString(this.item);
 	}
 
 	get isBoolean() {
-		return this.item.type == "Boolean";
+		return isBoolean(this.item);
 	}
 
 	get enumValues(): Enumeration[] {

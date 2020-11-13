@@ -80,3 +80,15 @@ export function formatOption(item: Item): string {
 	}
 	return item.description;
 }
+
+export function isNumeric(item: Item) {
+	return item.type.indexOf("Int") == 0;
+}
+
+export function isString(item: Item) {
+	return item.type == "String";
+}
+
+export function isBoolean(item: Item) {
+	return item.type == "Boolean";
+}
